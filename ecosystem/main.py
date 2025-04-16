@@ -1,98 +1,83 @@
-from random import choice
-from typing import Optional
+from random import choice, randint
+from typing import Optional, Self
 
-from colorama import Fore, Style, init as colorama_init
 
 class Animal:
-    """
-    Um Animal
-    """
+    def reproduce(self, river: list[Optional[Self]]):
+        i: Optional[int] = random_empty_pos(river)
+        if i is int:
+            river[i] = type(self)()
+
     pass
 
+
 class Urso(Animal):
-    """
-    Um Urso
-    """
     def __str__(self) -> str:
-        return f'{Fore.RED} 󱣻 {Style.RESET_ALL}'
+        return '-U-'
+
 
 class Peixe(Animal):
-    """
-    Um Peixe
-    """
     def __str__(self) -> str:
-        return f'{Fore.GREEN}  {Style.RESET_ALL}'
+        return '-P-'
 
 
-def random_animal() -> Optional[Animal]:
-    return choice([None, Urso(), Peixe()])
+class Rio:
+    def __init__(self, size: int, bear_amt: int, fish_amt: int) -> None:
+        self.__size: int = size
+        self.__rio: list[Optional[Animal]] = [None] * size
+        self.__populate(bear_amt, fish_amt)
+
+    def __place_animal(self, animal: Animal, amount: int) -> None:
+        for i in range(amount):
+            pos = random_empty_pos(self.__rio)
+            self.__rio[pos] = animal
+
+    def __populate(self, bear_amt: int, fish_amt: int) -> None:
+        self.__place_animal(Urso(), bear_amt)
+        self.__place_animal(Peixe(), fish_amt)
+
+    def game_round(self, round_num: int) -> None:
+        print(f'Rodada {round_num}:\n\t{self}')
+        self.move_animals()
+
+    def __str__(self) -> str:
+        return ''.join(str(a) if a else '---' for a in self.__rio)
+
+    def move_animals(self) -> None:
+        for x in range(self.__size):
+            if self.__rio[x] is None:
+                continue
+            direction = randint(-1, 1)
+            new_pos = x + direction
+            if direction != 0 and 0 <= new_pos < self.__size:
+                self.__collide(x, new_pos)
+
+    def __collide(self, start, end) -> None:
+        curr_pos: Animal = self.__rio[start]
+        next_pos: Optional[Animal] = self.__rio[end]
+
+        match (curr_pos, next_pos):
+            case (curr_pos, next_pos) if type(curr_pos) == type(next_pos):  # Animal <=> Animal
+                mother = choice([curr_pos, next_pos])
+                mother.reproduce(self.__rio)
+            case (curr_pos, next_pos) if isinstance(curr_pos, Urso) and isinstance(next_pos, Peixe):  # Urso -> Peixe
+                self.__rio[end] = curr_pos
+                self.__rio[start] = None
+            case (curr_pos, next_pos) if isinstance(curr_pos, Peixe) and isinstance(next_pos, Urso):  # Peixe -> Urso
+                self.__rio[start] = None
+            case _:  # Animal -> None
+                self.__rio[end] = curr_pos
+                self.__rio[start] = next_pos
 
 
-def random_empty_pos(river: list[Optional[Animal]]) -> Optional[int]:
+def random_empty_pos(river: list[Optional[any]]) -> Optional[int]:
     empty_spots: list[int] = [i for i, pos in enumerate(river) if pos is None]
     return choice(empty_spots) if empty_spots else None
 
 
-class Rio:
-    """
-    Um Rio
-    """
-    def __init__(self, tamanho: int) -> None:
-        self.__tamanho: int = tamanho
-        self.__rio: list[Optional[Animal]] = [random_animal() for _ in range(tamanho)]
-
-    def render_river(self) -> None:
-        print('|' + ''.join(str(a) if a else f'{Fore.BLUE} - {Style.RESET_ALL}' for a in self.__rio) + '|')
-
-    def move_animals(self) -> None:
-        new_river: list[Optional[Animal]] = self.__rio.copy()
-        moved: list[bool] = [False] * self.__tamanho
-
-        for i in range(self.__tamanho):
-            if self.__rio[i] is None or moved[i]:
-                continue
-
-            direction: int = choice([-1, 0, 1])
-            new_pos: int = i + direction
-
-            if new_pos < 0 or new_pos >= self.__tamanho or direction == 0:
-                continue
-
-            animal: Animal = self.__rio[i]
-            final_pos: Optional[Animal] = self.__rio[new_pos]
-
-            match (animal, final_pos):
-                case (_, None):
-                    new_river[new_pos] = animal
-                    new_river[i] = None
-                    moved[i] = True
-
-                case (a1, a2) if type(a1) == type(a2):
-                    new_empty_pos: Optional[int] = random_empty_pos(self.__rio)
-                    if new_empty_pos is not None:
-                        new_river[new_empty_pos] = type(animal)()
-                case (Urso(), Peixe()):
-                    new_river[new_pos] = animal
-                    new_river[i] = None
-                    moved[new_pos] = True
-
-                case (Peixe(), Urso()):
-                    new_river[i] = None
-
-                case _:
-                    pass
-        self.__rio = new_river
-
-
 if __name__ == '__main__':
-    rio: Rio = Rio(10)
-
-    colorama_init()
-    print("[  ] <- if you can't see this symbol, you're not using a NerdFont")
+    rio: Rio = Rio(10, 2, 5)
 
     game_round: int
     for game_round in range(5):
-        print(f'Rodada {game_round + 1}:')
-        rio.render_river()
-        rio.move_animals()
-
+        rio.game_round(game_round)
