@@ -1,22 +1,3 @@
-"""
-Escreva um programa em Python que simula um ecossistema.
-Este ecossistema consiste em um rio, modelado como uma lista,
-que contem dois tipos de animais: ursos e peixes.
-
-No ecossistema, cada elemento da lista deve ser um objeto do
-tipo Urso, Peixe ou None (que indica que a posição do rio
-está vazia).
-
-A cada rodada do jogo, baseada em um processo aleatório, cada
-animal tenta se mover para uma posição da lista adjacente (a
-esquerda ou direita) ou permanece na sua mesma posição.
-
-Se dois animais do mesmo tipo colidirem (urso com urso ou peixe com peixe),
-eles permanecem em suas posições originais, mas uma nova instância do
-animal deve ser posicionada em um local vazio, aleatoriamente determinado.
-
-Se um Urso e um peixe colidirem, entretanto, o peixe morre.
-"""
 from random import randint, choice, seed
 from abc import ABC, abstractmethod
 from typing import Self
@@ -24,12 +5,11 @@ from typing import Self
 
 class Jogo:
 
-    def __init__(self, tamanho, ursos, peixes, num_rodadas, fixed_seed = -1):
+    def __init__(self, tamanho, ursos, peixes, num_rodadas, fixed_seed=-1):
         if fixed_seed != -1:
             seed(fixed_seed)
         self.__ecossistema = Rio(tamanho, ursos, peixes)
         self.__num_rodadas = num_rodadas
-
 
     def run(self):
         print(self.__ecossistema)
