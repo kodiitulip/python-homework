@@ -2,4 +2,4 @@
 
 ## Estrutura de dados
 
-* [Ecossistema](ecosystem/main.py)
+* [Ecossistema](ecosystem/)
