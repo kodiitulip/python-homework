@@ -1,83 +1,140 @@
-from random import choice, randint
-from typing import Optional, Self
+"""
+Escreva um programa em Python que simula um ecossistema.
+Este ecossistema consiste em um rio, modelado como uma lista,
+que contem dois tipos de animais: ursos e peixes.
+
+No ecossistema, cada elemento da lista deve ser um objeto do
+tipo Urso, Peixe ou None (que indica que a posição do rio
+está vazia).
+
+A cada rodada do jogo, baseada em um processo aleatório, cada
+animal tenta se mover para uma posição da lista adjacente (a
+esquerda ou direita) ou permanece na sua mesma posição.
+
+Se dois animais do mesmo tipo colidirem (urso com urso ou peixe com peixe),
+eles permanecem em suas posições originais, mas uma nova instância do
+animal deve ser posicionada em um local vazio, aleatoriamente determinado.
+
+Se um Urso e um peixe colidirem, entretanto, o peixe morre.
+"""
+from random import randint, choice, seed
+from abc import ABC, abstractmethod
+from typing import Self
 
 
-class Animal:
-    def reproduce(self, river: list[Optional[Self]]):
-        i: Optional[int] = random_empty_pos(river)
-        if i is int:
-            river[i] = type(self)()
+class Jogo:
 
-    pass
-
-
-class Urso(Animal):
-    def __str__(self) -> str:
-        return '-U-'
+    def __init__(self, tamanho, ursos, peixes, num_rodadas, fixed_seed = -1):
+        if fixed_seed != -1:
+            seed(fixed_seed)
+        self.__ecossistema = Rio(tamanho, ursos, peixes)
+        self.__num_rodadas = num_rodadas
 
 
-class Peixe(Animal):
-    def __str__(self) -> str:
-        return '-P-'
+    def run(self):
+        print(self.__ecossistema)
+        for x in range(self.__num_rodadas):
+            self.__ecossistema.rodada()
+            print(self.__ecossistema)
 
 
 class Rio:
-    def __init__(self, size: int, bear_amt: int, fish_amt: int) -> None:
-        self.__size: int = size
-        self.__rio: list[Optional[Animal]] = [None] * size
-        self.__populate(bear_amt, fish_amt)
+    def __init__(self, tamanho_rio: int, qtd_ursos: int, qtd_peixes: int):
+        self.__rio: list[None | Animal] = [None] * tamanho_rio
+        self.__popular_rio(qtd_ursos, qtd_peixes)
 
-    def __place_animal(self, animal: Animal, amount: int) -> None:
-        for i in range(amount):
-            pos = random_empty_pos(self.__rio)
-            self.__rio[pos] = animal
+    def __popular_rio(self, qtd_ursos: int, qtd_peixes: int):
+        self.__posicionar(Urso, qtd_ursos)
+        self.__posicionar(Peixe, qtd_peixes)
 
-    def __populate(self, bear_amt: int, fish_amt: int) -> None:
-        self.__place_animal(Urso(), bear_amt)
-        self.__place_animal(Peixe(), fish_amt)
+    def __posicionar(self, classe, qtd: int) -> None:
+        empty_poss = self.__rio.count(None)
+        if empty_poss < qtd:
+            return
 
-    def game_round(self, round_num: int) -> None:
-        print(f'Rodada {round_num}:\n\t{self}')
-        self.move_animals()
+        for _ in range(qtd):
+            pos = randint(0, len(self.__rio) - 1)
+            while self.__rio[pos] is not None:
+                pos = randint(0, len(self.__rio) - 1)
+            self.__rio[pos] = classe()
 
-    def __str__(self) -> str:
-        return ''.join(str(a) if a else '---' for a in self.__rio)
-
-    def move_animals(self) -> None:
-        for x in range(self.__size):
+    def rodada(self) -> None:
+        for x in range(len(self.__rio)):
             if self.__rio[x] is None:
                 continue
-            direction = randint(-1, 1)
-            new_pos = x + direction
-            if direction != 0 and 0 <= new_pos < self.__size:
-                self.__collide(x, new_pos)
 
-    def __collide(self, start, end) -> None:
-        curr_pos: Animal = self.__rio[start]
-        next_pos: Optional[Animal] = self.__rio[end]
+            direcao: int = choice([-1, 0, 1])
+            nova_posicao: int = (x + direcao) % len(self.__rio)
+            if nova_posicao != x and 0 <= nova_posicao < len(self.__rio):
+                self.__colisao(x, nova_posicao)
 
-        match (curr_pos, next_pos):
-            case (curr_pos, next_pos) if type(curr_pos) == type(next_pos):  # Animal <=> Animal
-                mother = choice([curr_pos, next_pos])
-                mother.reproduce(self.__rio)
-            case (curr_pos, next_pos) if isinstance(curr_pos, Urso) and isinstance(next_pos, Peixe):  # Urso -> Peixe
-                self.__rio[end] = curr_pos
-                self.__rio[start] = None
-            case (curr_pos, next_pos) if isinstance(curr_pos, Peixe) and isinstance(next_pos, Urso):  # Peixe -> Urso
-                self.__rio[start] = None
-            case _:  # Animal -> None
-                self.__rio[end] = curr_pos
-                self.__rio[start] = next_pos
+    def __colisao(self, posicao_atual: int, nova_posicao: int) -> None:
+        animal_atual: Animal | None = self.__rio[posicao_atual]
+        animal_novo: Animal | None = self.__rio[nova_posicao]
+
+        acao = animal_atual.interagir(animal_novo)
+
+        match acao:
+            case "comer":
+                self.__rio[nova_posicao] = animal_atual
+                self.__rio[posicao_atual] = None
+            case "morrer":
+                self.__rio[posicao_atual] = None
+            case "reproduzir":
+                self.__posicionar(type(animal_atual), 1)
+            case "mover":
+                self.__rio[nova_posicao] = animal_atual
+                self.__rio[posicao_atual] = None
+            case _:
+                raise Exception('ação não reconhecida')
+
+    def __str__(self):
+        return "".join(str(animal) if animal else " | " for animal in self.__rio)
 
 
-def random_empty_pos(river: list[Optional[any]]) -> Optional[int]:
-    empty_spots: list[int] = [i for i, pos in enumerate(river) if pos is None]
-    return choice(empty_spots) if empty_spots else None
+class Animal(ABC):
+    @abstractmethod
+    def interagir(self, outro: Self) -> str:
+        """
+        Define a interação entre dois animais. Possíveis ações:
+
+        - "comer": o animal come o outro
+        - "morrer": o animal morre
+        - "reproduzir": o animal se reproduz
+        """
+        ...
+
+
+class Urso(Animal):
+    def interagir(self, outro: Animal) -> str:
+        if isinstance(outro, Peixe):
+            return "comer"
+
+        elif isinstance(outro, Urso):
+            return "reproduzir"
+
+        else:
+            return "mover"
+
+    def __str__(self):
+        return " U "
+
+
+class Peixe(Animal):
+    def interagir(self, outro: Animal) -> str:
+        if isinstance(outro, Urso):
+            return "morrer"
+
+        elif isinstance(outro, Peixe):
+            return "reproduzir"
+
+        else:
+            return "mover"
+
+    def __str__(self):
+        return " P "
 
 
 if __name__ == '__main__':
-    rio: Rio = Rio(10, 2, 5)
-
-    game_round: int
-    for game_round in range(5):
-        rio.game_round(game_round)
+    jogo = Jogo(10, 2, 3, 5, 4)
+    jogo.run()
