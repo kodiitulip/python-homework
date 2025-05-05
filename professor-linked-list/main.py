@@ -420,6 +420,15 @@ class DoublyLinkedList(ListADT):
             return '||'
 
 
+class NoDupsList[E](LinkedList[E]):
+    def __init__(self, elem: Optional[Node[E]] = None):
+        super().__init__(elem)
+
+    def insert(self, index: int, elem: E) -> None:
+        if self.count(elem) > 0:
+            raise Exception('Sem Duplicatas')
+        super().insert(index, elem)
+
 
 if __name__ == '__main__':
     print('Linked List')
