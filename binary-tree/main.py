@@ -113,6 +113,10 @@ class BinaryTree[T: SupportsAllComparisons]:
     def empty(self) -> bool:
         return self.__root is None
 
+    def multi_isert(self, data_list: list[T]) -> None:
+        for item in data_list:
+            self.insert(item)
+
     def insert(self, data: T) -> None:
         if self.__root is None:
             self.__root = Node(data)
@@ -157,13 +161,13 @@ class BinaryTree[T: SupportsAllComparisons]:
     def successor(node: Node[T]) -> Node[T]:
         """grabs the lowest value that's greater than <node>"""
         _, right = node.get_children()
-        if not right:
+        if right is None:
             return node
 
         low: T = right.data
         current = right
-        while current.left:
-            low = current.left.data if current.left <= low else low
+        while current.left is not None:
+            low = current.left.data if current.left.data <= low else low
             current = current.left
         return current
 
@@ -173,9 +177,9 @@ class BinaryTree[T: SupportsAllComparisons]:
             return None
         y = self.successor(z)
         x = y.left if y.left else y.right
-        if x:
+        if x is not None:
             x.parent = y.parent
-        if not y.parent:
+        if y.parent is None:
             self.__root = x
         elif y == y.parent.left:
             y.parent.left = x
@@ -263,8 +267,9 @@ class BinaryTree[T: SupportsAllComparisons]:
 
 if __name__ == "__main__":
     bt = BinaryTree()
-    for _ in range(10):
-        bt.insert(randint(1, 10))
+    # for _ in range(10):
+    #     bt.insert(randint(1, 10))
+    bt.multi_isert([3,3,5,2,10,8,9,9,10,10])
     print(bt)
     print(len(bt))
     print(bt.search(5))
@@ -272,3 +277,6 @@ if __name__ == "__main__":
     print(bt)
     print(bt.number_of_leaves())
     print(bt.number_of_left_leaves())
+    print(len(bt))
+    bt.delete_subtree(8)
+    print(bt)
