@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from localizations import translate, find_key
+
 from collections import deque
 from typing import TYPE_CHECKING, Callable
 
@@ -71,19 +73,19 @@ class Tree[T: SupportsAllComparisons]:
     def __print_levels(self) -> str:
         queue = deque([(self.__root, 0)])
         current_level = 0
-        level_nodes = []
+        level_nodes: list[TreeNode[T]] = []
         lines = list()
         while queue:
             node, level = queue.popleft()
             if level != current_level:
-                lines.append("Level" + str(current_level) + ":" + " ".join(str(n.value) for n in level_nodes))
+                lines.append("Level" + str(current_level) + ":" + " ".join(str(n) for n in level_nodes))
                 level_nodes = []
                 current_level = level
             level_nodes.append(node)
             for child in node.children:
                 queue.append((child, level + 1))
         if level_nodes:
-            lines.append("Level" + str(current_level) + ":" + " ".join(str(n.value) for n in level_nodes))
+            lines.append("Level" + str(current_level) + ":" + " ".join(str(n) for n in level_nodes))
         return "\n".join(lines)
 
     def traverse_preorder(self, node: TreeNode[T] | None = None):
@@ -138,43 +140,75 @@ class Tree[T: SupportsAllComparisons]:
         return self.__print_levels()
 
 
-class MenuTree[T: tuple[str, str | None]](Tree[T]):
+class MenuTree[T: tuple[str, str | None]  # (localization_key, shortcut)
+               ](Tree[T]):
 
-    def __init__(self, menu_name: str, menu_key: str | None = None) -> None:
+    def __init__(self, menu_name: str, menu_key: str | None = None, lang: str = "en") -> None:
         super().__init__((menu_name, menu_key))
+        self.__lang: str = lang
+
+    @property
+    def lang(self) -> str:
+        return self.__lang
+
+    @lang.setter
+    def lang(self, new: str) -> None:
+        self.__lang = new
+
+    def __str__(self) -> str:
+        return self.__print_translated_levels()
+
+    def __print_translated_levels(self) -> str:
+        queue = deque([(self.root, 0)])
+        current_level = 0
+        level_nodes: list[TreeNode[T]] = []
+        lines = list()
+        while queue:
+            node, level = queue.popleft()
+            if level != current_level:
+                lines.append("Level" + str(current_level) + ":" + " ".join(
+                    f"({translate(n.value[0], self.lang)}, {n.value[1]})" for n in level_nodes))
+                level_nodes = []
+                current_level = level
+            level_nodes.append(node)
+            for child in node.children:
+                queue.append((child, level + 1))
+        if level_nodes:
+            lines.append("Level" + str(current_level) + ":" + " ".join(
+                f"({translate(n.value[0], self.lang)}, {n.value[1]})" for n in level_nodes))
+        return "\n".join(lines)
 
     def find_shortcut(self, name: str) -> str | None:
-        l = lambda n: name == n.value[0]
-        res: TreeNode[T] = self.breadth_first_search(l)
-        return res.value[1]
-    
-    def find_all_shortcut(self, name: str) -> list[TreeNode[T]]: # TODO: change to list[str]
-        res: list[TreeNode[T]] = self.breadth_first_search_multi(lambda n: name in n.value[1])
-        return res
+        l = lambda n: name.lower() == translate(n.value[0], self.lang).lower()
+        res: TreeNode[T] | None = self.breadth_first_search(l) or None
+        return res.value[1] if res is not None else "None"
+
+    def find_all_nodes(self, name: str) -> list[str]:
+        l = lambda n: name.lower() in translate(n.value[0], self.lang).lower()
+        res: list[TreeNode[T]] = self.breadth_first_search_multi(l)
+        return [f"({translate(n.value[0])}, {n.value[1]})" for n in res]
 
     def find_menu_item(self, shortcut: str) -> str | None:
-        l = lambda n: shortcut == n.value[1]
-        res: TreeNode[T] = self.breadth_first_search(l)
-        return res.value[0]
-
-
+        l = lambda n: shortcut.lower() == (n.value[1] or "").lower()
+        res: TreeNode[T] | None = self.breadth_first_search(l) or None
+        return translate(res.value[0], self.lang) if res is not None else "None"
 
 
 if __name__ == "__main__":
-    tree = MenuTree(menu_name="App")
+    tree = MenuTree(menu_name="menu.app", lang="en")
     _, edit, *_ = tree.multi_insert([
-        ("Pain", None),
-        ("Edit", "<C-S-e>"),
-        ("Open", "<C-o>"),
-        ("Save", "<C-s>"),
-        ("Save as", "<C-S-s>")
+        ("menu.pain", None),
+        ("menu.edit", "<C-S-e>"),
+        ("menu.open", "<C-o>"),
+        ("menu.save", "<C-s>"),
+        ("menu.save_as", "<C-S-s>")
     ])
     tree.multi_insert([
-        ("Undo", "<C-z>"),
-        ("Redo", "<C-y>"),
-        ("Format", "<C-A-l>")
+        ("menu.undo", "<C-z>"),
+        ("menu.redo", "<C-y>"),
+        ("menu.format", "<C-A-l>")
     ], parent=edit)
     print(tree)
-    print(tree.breadth_first_search_value(("Edit", "<C-S-e>")))
     print(tree.find_shortcut("Redo"))
     print(tree.find_menu_item("<C-z>"))
+    print(tree.find_all_nodes("a"))
