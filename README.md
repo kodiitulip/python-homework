@@ -7,3 +7,4 @@
 * [LinkedLists (Professor's version)](professor-linked-list/)
 * [Recursion](recursion/)
 * [Binary Tree](binary-tree/)
+* [Tree](tree/)
