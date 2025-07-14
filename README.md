@@ -8,3 +8,5 @@
 * [Recursion](recursion/)
 * [Binary Tree](binary-tree/)
 * [Tree](tree/)
+* [Math Expressions](math-expr/)
+* [Graphs (professor's version)](graph-prof-version/)
